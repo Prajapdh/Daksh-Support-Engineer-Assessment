@@ -1,4 +1,5 @@
 import { z } from "zod";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { TRPCError } from "@trpc/server";
@@ -6,6 +7,7 @@ import { publicProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { encrypt } from "@/lib/encryption";
 
 export const authRouter = router({
   signup: publicProcedure
@@ -35,10 +37,12 @@ export const authRouter = router({
       }
 
       const hashedPassword = await bcrypt.hash(input.password, 10);
+      const encryptedSSN = encrypt(input.ssn);
 
       await db.insert(users).values({
         ...input,
         password: hashedPassword,
+        ssn: encryptedSSN,
       });
 
       // Fetch the created user
@@ -52,7 +56,7 @@ export const authRouter = router({
       }
 
       // Create session
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
+      const token = jwt.sign({ userId: user.id, jti: crypto.randomUUID() }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
         expiresIn: "7d",
       });
 
@@ -72,7 +76,10 @@ export const authRouter = router({
         (ctx.res as Headers).set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
       }
 
-      return { user: { ...user, password: undefined }, token };
+      // Return user without sensitive data (password AND ssn)
+      // We explicitly destructure to avoid sending ssn back
+      const { password: _, ssn: __, ...userSafe } = user;
+      return { user: userSafe, token };
     }),
 
   login: publicProcedure
@@ -101,7 +108,7 @@ export const authRouter = router({
         });
       }
 
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
+      const token = jwt.sign({ userId: user.id, jti: crypto.randomUUID() }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
         expiresIn: "7d",
       });
 
@@ -120,7 +127,9 @@ export const authRouter = router({
         (ctx.res as Headers).set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
       }
 
-      return { user: { ...user, password: undefined }, token };
+      // Return user without sensitive data
+      const { password: _, ssn: __, ...userSafe } = user;
+      return { user: userSafe, token };
     }),
 
   logout: publicProcedure.mutation(async ({ ctx }) => {
