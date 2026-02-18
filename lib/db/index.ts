@@ -4,14 +4,20 @@ import * as schema from "./schema";
 
 const dbPath = "bank.db";
 
-const sqlite = new Database(dbPath);
+// Singleton pattern for database connection
+const globalForDb = global as unknown as { sqlite: Database.Database };
+
+const sqlite = globalForDb.sqlite || new Database(dbPath);
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.sqlite = sqlite;
+}
+
 export const db = drizzle(sqlite, { schema });
 
-const connections: Database.Database[] = [];
-
 export function initDb() {
-  const conn = new Database(dbPath);
-  connections.push(conn);
+  // Use the existing singleton connection
+  // No need to create a new connection here
 
   // Create tables if they don't exist
   sqlite.exec(`
