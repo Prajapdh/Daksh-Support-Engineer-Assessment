@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidCardNumber } from "@/lib/validationUtils";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
@@ -81,6 +82,17 @@ export const accountRouter = router({
           type: z.enum(["card", "bank"]),
           accountNumber: z.string(),
           routingNumber: z.string().optional(),
+        }).superRefine((data, ctx) => {
+          if (data.type === 'card') {
+            if (!isValidCardNumber(data.accountNumber)) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Invalid card number (Luhn check failed or invalid length)",
+                path: ["accountNumber"],
+              });
+            }
+          }
+          // Bank account validation could go here too
         }),
       })
     )

@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { users, accounts, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-async function main() {
+async function verifyTransactions() {
     console.log("Starting transaction verification script...");
 
     // 1. Create a test user
@@ -111,4 +111,4 @@ async function main() {
     }
 }
 
-main().catch(console.error);
+verifyTransactions().catch(console.error);

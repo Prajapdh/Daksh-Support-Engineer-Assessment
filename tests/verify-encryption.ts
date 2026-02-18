@@ -6,7 +6,7 @@ import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { decrypt } from "@/lib/encryption";
 
-async function main() {
+async function verifyEncryption() {
     const testUser = {
         email: "test-encryption@example.com",
         password: "Password123!",
@@ -97,4 +97,4 @@ async function main() {
     console.log("All checks passed!");
 }
 
-main().catch(console.error);
+verifyEncryption().catch(console.error);
