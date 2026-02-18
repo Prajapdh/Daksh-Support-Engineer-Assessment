@@ -6,6 +6,14 @@ import { db } from "@/lib/db";
 import { sessions, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+/**
+ * Builds an RPC context by extracting the request/response from Next.js or Fetch adapters and resolving the authenticated user from a session cookie.
+ *
+ * The function reads the "session" cookie, verifies its JWT, and, if the corresponding session is present and not expired (with a 1-minute safety buffer), loads the associated user. A warning is emitted if the session is nearing expiry.
+ *
+ * @param opts - Adapter-specific context options from Next.js (`CreateNextContextOptions`) or Fetch (`FetchCreateContextFnOptions`)
+ * @returns An object with `user` (the authenticated user record or `null`), `req` (the request object), and `res` (the response object/headers)
+ */
 export async function createContext(opts: CreateNextContextOptions | FetchCreateContextFnOptions) {
   // Handle different adapter types
   let req: any;
