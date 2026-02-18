@@ -40,6 +40,9 @@ async function main() {
             .where(sql`${transactions.id} = ${transaction.id}`);
     }
 
+    sqlite.prepare("INSERT INTO _schema_migrations (name) VALUES (?)").run(MIGRATION_NAME);
+    sqlite.close();
+
     console.log("Migration completed successfully.");
 }
 

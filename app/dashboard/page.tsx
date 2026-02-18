@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [fundingAccountId, setFundingAccountId] = useState<number | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
 
+  const utils = trpc.useUtils();
   const { data: accounts, refetch: refetchAccounts } = trpc.account.getAccounts.useQuery();
   const logoutMutation = trpc.auth.logout.useMutation();
 
@@ -70,9 +71,8 @@ export default function DashboardPage() {
                       <dd className="mt-1 text-sm text-gray-500">
                         Status:{" "}
                         <span
-                          className={`font-medium ${
-                            account.status === "active" ? "text-green-600" : "text-yellow-600"
-                          }`}
+                          className={`font-medium ${account.status === "active" ? "text-green-600" : "text-yellow-600"
+                            }`}
                         >
                           {account.status}
                         </span>
@@ -128,6 +128,10 @@ export default function DashboardPage() {
           accountId={fundingAccountId}
           onClose={() => setFundingAccountId(null)}
           onSuccess={() => {
+            if (fundingAccountId) {
+              // Invalidate transactions for this account
+              utils.account.getTransactions.invalidate({ accountId: fundingAccountId });
+            }
             setFundingAccountId(null);
             refetchAccounts();
           }}
