@@ -54,10 +54,15 @@ export async function createContext(opts: CreateNextContextOptions | FetchCreate
 
       const session = await db.select().from(sessions).where(eq(sessions.token, token)).get();
 
-      if (session && new Date(session.expiresAt) > new Date()) {
+      // SEC-304 & PERF-403: Add safety buffer for session expiry
+      // 1 minute buffer to prevent race conditions at the exact second of expiry
+      const EXPIRY_THRESHOLD = 60000;
+
+      if (session && new Date(session.expiresAt).getTime() > Date.now() + EXPIRY_THRESHOLD) {
         user = await db.select().from(users).where(eq(users.id, decoded.userId)).get();
         const expiresIn = new Date(session.expiresAt).getTime() - new Date().getTime();
-        if (expiresIn < 60000) {
+        // Warn if close to actual expiry (ignoring buffer for warning)
+        if (expiresIn < EXPIRY_THRESHOLD * 2) {
           console.warn("Session about to expire");
         }
       }
