@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import { randomInt } from "crypto";
 
 
@@ -54,30 +54,17 @@ export const accountRouter = router({
       // Fetch the created account
       const account = await db.select().from(accounts).where(eq(accounts.accountNumber, accountNumber!)).get();
 
-      return (
-        account ? {
-          ...account,
-          balance: account.balance / 100
-        } : {
+      return account
+        ? { ...account, balance: account.balance / 100 }
+        : {
           id: 0,
           userId: ctx.user.id,
           accountNumber: accountNumber!,
           accountType: input.accountType,
-          balance: 100, // This is likely just a placeholder initial val in UI? Or maybe they get $100 bonus? Let's check logic. The insert was 0. The return fallback has 100.
-          // Wait, the insert was 0. If I return fallback 100, that's misleading if it wasn't inserted.
-          // But looking at existing code: 
-          // balance: 100 (line 63)
-          // The insert sets balance: 0 (line 50)
-          // So if account is NOT found after insert (which is weird), it returns a dummy with 100 balance?
-          // I will assume the return value should also be consistent.
-          // If the DB has 0, we return 0/100 = 0.
-          // If the fallback is used, we should probably keep it compatible or investigate why it is there.
-          // It seems to be a "optimistic" return or mock. 
-          // Let's stick to converting the DB value.
+          balance: 0,
           status: "pending",
           createdAt: new Date().toISOString(),
-        }
-      );
+        };
     }),
 
   getAccounts: protectedProcedure.query(async ({ ctx }) => {
@@ -135,6 +122,7 @@ export const accountRouter = router({
         amount: amountInCents,
         description: `Funding from ${input.fundingSource.type}`,
         status: "completed",
+        createdAt: new Date().toISOString(),
         processedAt: new Date().toISOString(),
       }).returning();
 
@@ -182,21 +170,13 @@ export const accountRouter = router({
       const accountTransactions = await db
         .select()
         .from(transactions)
-        .where(eq(transactions.accountId, input.accountId));
+        .where(eq(transactions.accountId, input.accountId))
+        .orderBy(desc(transactions.createdAt), desc(transactions.id));
 
-      const enrichedTransactions = [];
-      for (const transaction of accountTransactions) {
-        const accountDetails = await db.select().from(accounts).where(eq(accounts.id, transaction.accountId)).get();
-
-        enrichedTransactions.push({
-          ...transaction,
-          accountType: accountDetails?.accountType,
-        });
-      }
-
-      return enrichedTransactions.map(tx => ({
+      return accountTransactions.map(tx => ({
         ...tx,
-        amount: tx.amount / 100
+        amount: tx.amount / 100,
+        accountType: account.accountType,
       }));
     }),
 });
