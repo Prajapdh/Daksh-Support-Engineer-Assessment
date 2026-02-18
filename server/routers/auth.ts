@@ -14,11 +14,22 @@ export const authRouter = router({
     .input(
       z.object({
         email: z.string().email().toLowerCase(),
-        password: z.string().min(8),
+        password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/, "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"),
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
-        dateOfBirth: z.string(),
+        dateOfBirth: z.string().refine((dob) => {
+          const date = new Date(dob);
+          const now = new Date();
+          if (date > now) return false;
+
+          const age = now.getFullYear() - date.getFullYear();
+          const monthDiff = now.getMonth() - date.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
+            return age - 1 >= 18;
+          }
+          return age >= 18;
+        }, "You must be at least 18 years old"),
         ssn: z.string().regex(/^\d{9}$/),
         address: z.string().min(1),
         city: z.string().min(1),

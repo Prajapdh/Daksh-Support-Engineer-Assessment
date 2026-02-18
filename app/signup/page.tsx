@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
+import { isFutureDate, isValidAge } from "@/lib/validationUtils";
 import Link from "next/link";
 
 type SignupFormData = {
@@ -110,6 +111,9 @@ export default function SignupPage() {
                         return !commonPasswords.includes(value.toLowerCase()) || "Password is too common";
                       },
                       hasNumber: (value) => /\d/.test(value) || "Password must contain a number",
+                      hasUppercase: (value) => /[A-Z]/.test(value) || "Password must contain an uppercase letter",
+                      hasLowercase: (value) => /[a-z]/.test(value) || "Password must contain a lowercase letter",
+                      hasSpecialChar: (value) => /[\W_]/.test(value) || "Password must contain a special character",
                     },
                   })}
                   type="password"
@@ -189,7 +193,13 @@ export default function SignupPage() {
                   Date of Birth
                 </label>
                 <input
-                  {...register("dateOfBirth", { required: "Date of birth is required" })}
+                  {...register("dateOfBirth", {
+                    required: "Date of birth is required",
+                    validate: {
+                      notFuture: (value) => !isFutureDate(value) || "Date of birth cannot be in the future",
+                      minAge: (value) => isValidAge(value, 18) || "You must be at least 18 years old"
+                    }
+                  })}
                   type="date"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
