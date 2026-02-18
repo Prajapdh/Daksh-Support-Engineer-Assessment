@@ -76,7 +76,7 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
                     message: "Invalid amount format",
                   },
                   min: {
-                    value: 0.0,
+                    value: 0.01,
                     message: "Amount must be at least $0.01",
                   },
                   max: {
@@ -114,8 +114,8 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
               {...register("accountNumber", {
                 required: `${fundingType === "card" ? "Card" : "Account"} number is required`,
                 pattern: {
-                  value: fundingType === "card" ? /^\d{16}$/ : /^\d+$/,
-                  message: fundingType === "card" ? "Card number must be 16 digits" : "Invalid account number",
+                  value: fundingType === "card" ? /^\d{13,19}$/ : /^\d+$/,
+                  message: fundingType === "card" ? "Card number must be 13-19 digits" : "Invalid account number",
                 },
                 validate: {
                   validCard: (value) => {

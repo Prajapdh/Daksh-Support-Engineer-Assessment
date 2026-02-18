@@ -77,7 +77,7 @@ export const accountRouter = router({
     .input(
       z.object({
         accountId: z.number(),
-        amount: z.number().positive(),
+        amount: z.number().min(0.01, "Amount must be at least $0.01"),
         fundingSource: z.object({
           type: z.enum(["card", "bank"]),
           accountNumber: z.string(),
@@ -92,7 +92,16 @@ export const accountRouter = router({
               });
             }
           }
-          // Bank account validation could go here too
+
+          if (data.type === 'bank') {
+            if (!data.routingNumber) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Routing number is required for bank transfers",
+                path: ["routingNumber"],
+              });
+            }
+          }
         }),
       })
     )
