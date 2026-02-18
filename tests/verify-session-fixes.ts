@@ -26,6 +26,14 @@ const createMockCtx = (token?: string) => {
     };
 };
 
+/**
+ * Runs end-to-end verification checks for session handling fixes.
+ *
+ * Performs two test scenarios: SEC-304 (enforces single active session per user) and PERF-403 (enforces a 60-second expiry buffer).
+ * The function creates a unique test user, exercises signup and login flows to produce sessions, validates session invalidation and buffer-based acceptance/rejection via the application's context logic, and then cleans up created database records.
+ *
+ * Side effects: inserts and deletes users and sessions in the database, emits console logs, and may terminate the process with exit code 1 on test failures.
+ */
 async function verifySessionFixes() {
     console.log("Starting Session Fixes Verification...");
 
